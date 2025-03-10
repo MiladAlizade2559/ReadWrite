@@ -17,22 +17,25 @@
 class CFile : public CFolder
    {
 private:
-
+    int              m_handle;   // handler for opened file
 public:
                      CFile(void);
                      CFile(const string path,const bool is_common_folder);
                     ~CFile(void);
+    //--- Functions for controlling variables
+    int              Handle(void) {return(m_handle);}
    };
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
 //+------------------------------------------------------------------+
-CFile::CFile(void)
+CFile::CFile(void) : m_handle(INVALID_HANDLE)
    {
    }
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
 //+------------------------------------------------------------------+
-CFile::CFile(const string path,const bool is_common_folder) : CFolder(path,is_common_folder)
+CFile::CFile(const string path,const bool is_common_folder) : CFolder(path,is_common_folder),
+    m_handle(INVALID_HANDLE)
    {
    }
 //+------------------------------------------------------------------+
