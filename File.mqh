@@ -16,7 +16,7 @@
 //+------------------------------------------------------------------+
 class CFile : public CFolder
    {
-private:
+protected:
     int              m_handle;   // handler for opened file
 public:
                      CFile(void);
@@ -25,13 +25,13 @@ public:
     //--- Functions for controlling variables
     int              Handle(void) {return(m_handle);}
     //--- General functions for controlling work with files
-    void              Close(void);
-    ulong             Size(void);
-    ulong             Tell(void);
-    void              Seek(const long offset,const ENUM_FILE_POSITION origin);
-    void              Flush(void);
-    bool              IsEnding(void);
-    bool              IsLineEnding(void);
+    void             Close(void);
+    ulong            Size(void);
+    ulong            Tell(void);
+    void             Seek(const long offset,const ENUM_FILE_POSITION origin);
+    void             Flush(void);
+    bool             IsEnding(void);
+    bool             IsLineEnding(void);
    };
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
@@ -72,7 +72,7 @@ ulong CFile::Size(void)
    {
 //--- check handle
     if(m_handle != INVALID_HANDLE)
-        return(FileSize(m_handle));
+        return(::FileSize(m_handle));
 //--- failure
     return(0);
    }
@@ -83,7 +83,7 @@ ulong CFile::Tell(void)
    {
 //--- check handle
     if(m_handle != INVALID_HANDLE)
-        return(FileTell(m_handle));
+        return(::FileTell(m_handle));
 //--- failure
     return(0);
    }
@@ -94,7 +94,7 @@ void CFile::Seek(const long offset,const ENUM_FILE_POSITION origin)
    {
 //--- check handle
     if(m_handle != INVALID_HANDLE)
-        FileSeek(m_handle,offset,origin);
+        ::FileSeek(m_handle,offset,origin);
    }
 //+------------------------------------------------------------------+
 //| Flush data from the file buffer of input-output to disk          |
@@ -103,7 +103,7 @@ void CFile::Flush(void)
    {
 //--- check handle
     if(m_handle != INVALID_HANDLE)
-        FileFlush(m_handle);
+        ::FileFlush(m_handle);
    }
 //+------------------------------------------------------------------+
 //| Detect the end of file                                           |
@@ -112,7 +112,7 @@ bool CFile::IsEnding(void)
    {
 //--- check handle
     if(m_handle != INVALID_HANDLE)
-        return(FileIsEnding(m_handle));
+        return(::FileIsEnding(m_handle));
 //--- failure
     return(false);
    }
@@ -123,7 +123,7 @@ bool CFile::IsLineEnding(void)
    {
 //--- checking
     if(m_handle != INVALID_HANDLE)
-        return(FileIsLineEnding(m_handle));
+        return(::FileIsLineEnding(m_handle));
 //--- failure
     return(false);
    }
