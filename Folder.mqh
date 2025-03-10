@@ -31,7 +31,13 @@ public:
     void             FolderClose(void);
     bool             FolderCreate(const string folder_name)                         {return(::FolderCreate(m_path + "\\" + folder_name,m_is_common_folder ? FILE_COMMON : 0));}  // create folder in path
     bool             FolderDelete(const string folder_name)                         {return(::FolderDelete(m_path + "\\" + folder_name,m_is_common_folder ? FILE_COMMON : 0));}  // delete folder in path
-    bool             FolderClean(void)                                              {return(::FolderClean(m_path,m_is_common_folder ? FILE_COMMON : 0));}                        // clean folder in path
+    bool             FolderClean(void)                                              {return(::FolderClean(m_path,m_is_common_folder ? FILE_COMMON : 0));                      }  // clean folder in path
+    //--- Functions for controlling work with files
+    bool             FileExists(const string file_name)                             {return(::FileIsExist(file_name,m_is_common_folder ? FILE_COMMON : 0));                   }  // exists file in path
+    bool             FileDelete(const string file_name)                             {return(::FileDelete(file_name,m_is_common_folder ? FILE_COMMON : 0));                    }  // delete file in path
+    bool             FileCopy(const string source_file_name,const string target_path,const string target_file_name,const bool target_is_common_folder);
+    bool             FileCut(const string source_file_name,const string target_path,const string target_file_name,const bool target_is_common_folder,const bool update_path = false);
+    bool             FileRename(const string file_name,const string new_file_name);
    };
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
@@ -119,5 +125,66 @@ void CFolder::FolderClose(void)
     string results[];
     if(::StringSplit(m_path,'\\',results) > 0)
         m_folder_name = results[results.Size() - 1];
+   }
+//+------------------------------------------------------------------+
+//| Copy file in path                                                |
+//+------------------------------------------------------------------+
+bool CFolder::FileCopy(const string source_file_name,const string target_path,const string target_file_name,const bool target_is_common_folder)
+   {
+//--- set source and target file names
+    string source = m_path + "\\" + source_file_name;
+    string target = target_path + "\\" + target_file_name;
+//--- checking is exists file name
+    if(!FileExists(source_file_name))
+        return(false);
+//--- checking is exists new file in path and copy file
+    if(::FileIsExist(target,target_is_common_folder ? FILE_COMMON : 0))
+       {
+        if(!::FileCopy(source,m_is_common_folder ? FILE_COMMON : 0,target,target_is_common_folder ? FILE_COMMON | FILE_REWRITE : FILE_REWRITE))
+            return(false);
+       }
+    else
+        if(!::FileCopy(source,m_is_common_folder ? FILE_COMMON : 0,target,target_is_common_folder ? FILE_COMMON : 0))
+            return(false);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Cut or Move file in path                                         |
+//+------------------------------------------------------------------+
+bool CFolder::FileCut(const string source_file_name,const string target_path,const string target_file_name,const bool target_is_common_folder,const bool update_path = false)
+   {
+//--- set source and target file names
+    string source = m_path + "\\" + source_file_name;
+    string target = target_path + "\\" + target_file_name;
+//--- checking is exists file name
+    if(!FileExists(source_file_name))
+        return(false);
+//--- checking is exists new file in path and move file
+    if(::FileIsExist(target,target_is_common_folder ? FILE_COMMON : 0))
+       {
+        if(!::FileMove(source,m_is_common_folder ? FILE_COMMON : 0,target,target_is_common_folder ? FILE_COMMON | FILE_REWRITE : FILE_REWRITE))
+            return(false);
+       }
+    else
+        if(!::FileMove(source,m_is_common_folder ? FILE_COMMON : 0,target,target_is_common_folder ? FILE_COMMON : 0))
+            return(false);
+//--- checking is update path
+    if(update_path)
+       {
+        //--- update path
+        Path(target,target_is_common_folder);
+       }
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Rename file in path                                              |
+//+------------------------------------------------------------------+
+bool CFolder::FileRename(const string file_name,const string new_file_name)
+   {
+//--- checking is exists new file name
+    if(FileExists(new_file_name))
+        return(false);
+//--- moving file name to new file name
+    return(FileCut(file_name,m_path,new_file_name,m_is_common_folder));
    }
 //+------------------------------------------------------------------+
