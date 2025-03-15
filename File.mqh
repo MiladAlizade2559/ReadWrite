@@ -16,16 +16,15 @@
 //+------------------------------------------------------------------+
 class CFile : public CFolder
    {
-protected:
-    int              m_handle;   // handler for opened file
+private:
+
 public:
                      CFile(void);
                      CFile(const string path,const bool is_common_folder);
                     ~CFile(void);
-    //--- Functions for controlling variables
-    int              Handle(void) {return(m_handle);}
     //--- General functions for controlling work with files
-    void             Close(void);
+    virtual int      Open(const string file_name,const uint flags);
+    virtual void     Close(void);
     ulong            Size(void);
     ulong            Tell(void);
     void             Seek(const long offset,const ENUM_FILE_POSITION origin);
@@ -36,14 +35,13 @@ public:
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
 //+------------------------------------------------------------------+
-CFile::CFile(void) : m_handle(INVALID_HANDLE)
+CFile::CFile(void)
    {
    }
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
 //+------------------------------------------------------------------+
-CFile::CFile(const string path,const bool is_common_folder) : CFolder(path,is_common_folder),
-    m_handle(INVALID_HANDLE)
+CFile::CFile(const string path,const bool is_common_folder) : CFolder(path,is_common_folder)
    {
    }
 //+------------------------------------------------------------------+
@@ -51,6 +49,15 @@ CFile::CFile(const string path,const bool is_common_folder) : CFolder(path,is_co
 //+------------------------------------------------------------------+
 CFile::~CFile(void)
    {
+   }
+//+------------------------------------------------------------------+
+//| Opening the file                                                 |
+//+------------------------------------------------------------------+
+int CFile::Open(const string file_name,const uint flags)
+   {
+    int open_flags = IsCommonFolder() ? (int)flags | FILE_COMMON : (int)flags;
+    m_handle = ::FileOpen(file_name,open_flags);
+    return(m_handle);
    }
 //+------------------------------------------------------------------+
 //| Close the file                                                   |
