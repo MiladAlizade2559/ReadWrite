@@ -13,9 +13,11 @@
 class CFolder
    {
 private:
-    string           m_path;              // path
-    string           m_folder_name;       // folder name
-    bool             m_is_common_folder;  // is common folder
+    string           m_path;                // path
+    string           m_folder_name;         // folder name
+    bool             m_is_common_folder;    // is common folder
+protected:
+    int              m_handle;              // handler for opened file
 public:
                      CFolder(void);
                      CFolder(const string path,const bool is_common_folder)         {Path(path,is_common_folder);}                           // set path
@@ -25,16 +27,20 @@ public:
     string           Path(void)                                                     {return(m_path);                                      }  // get path
     string           FolderName(void)                                               {return(m_folder_name);                               }  // get folder name
     bool             IsCommonFolder(void)                                           {return(m_is_common_folder);                          }  // get is common folder
+    int              Handle(void)                                                   {return(m_handle);                                    }
+    void             Handle(const int handle)                                       {m_handle = handle;                                   }
     //--- Functions for controlling work with folders
     bool             FolderExists(const string folder_name);
     bool             FolderOpen(const string folder_name);
     void             FolderClose(void);
-    bool             FolderCreate(const string folder_name)                         {return(::FolderCreate(m_path + "\\" + folder_name,m_is_common_folder ? FILE_COMMON : 0));}  // create folder in path
-    bool             FolderDelete(const string folder_name)                         {return(::FolderDelete(m_path + "\\" + folder_name,m_is_common_folder ? FILE_COMMON : 0));}  // delete folder in path
-    bool             FolderClean(void)                                              {return(::FolderClean(m_path,m_is_common_folder ? FILE_COMMON : 0));                      }  // clean folder in path
+    bool             FolderCreate(const string folder_name)                         {return(::FolderCreate(m_path + "\\" + folder_name,m_is_common_folder ? FILE_COMMON : 0));}     // create folder in path
+    bool             FolderDelete(const string folder_name)                         {return(::FolderDelete(m_path + "\\" + folder_name,m_is_common_folder ? FILE_COMMON : 0));}     // delete folder in path
+    bool             FolderClean(void)                                              {return(::FolderClean(m_path,m_is_common_folder ? FILE_COMMON : 0));                      }     // clean folder in path
     //--- Functions for controlling work with files
-    bool             FileExists(const string file_name)                             {return(::FileIsExist(file_name,m_is_common_folder ? FILE_COMMON : 0));                   }  // exists file in path
-    bool             FileDelete(const string file_name)                             {return(::FileDelete(file_name,m_is_common_folder ? FILE_COMMON : 0));                    }  // delete file in path
+    virtual int      Open(const string file_name,const uint flags) {return(INVALID_HANDLE);}                                                                                        // open file
+    virtual void     Close(void) {;}                                                                                                                                                // close file
+    bool             FileExists(const string file_name)                             {return(::FileIsExist(file_name,m_is_common_folder ? FILE_COMMON : 0));                   }     // exists file in path
+    bool             FileDelete(const string file_name)                             {return(::FileDelete(file_name,m_is_common_folder ? FILE_COMMON : 0));                    }     // delete file in path
     bool             FileCopy(const string source_file_name,const string target_path,const string target_file_name,const bool target_is_common_folder);
     bool             FileCut(const string source_file_name,const string target_path,const string target_file_name,const bool target_is_common_folder,const bool update_path = false);
     bool             FileRename(const string file_name,const string new_file_name);
@@ -44,7 +50,8 @@ public:
 //+------------------------------------------------------------------+
 CFolder::CFolder(void) : m_path(".\\"),
     m_folder_name(""),
-    m_is_common_folder(false)
+    m_is_common_folder(false),
+    m_handle(INVALID_HANDLE)
    {
    }
 //+------------------------------------------------------------------+
