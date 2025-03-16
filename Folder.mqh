@@ -7,10 +7,15 @@
 #property link      "https://www.mql5.com/en/users/MiladAlizade2559"
 #property version   "1.00"
 //+------------------------------------------------------------------+
+//| Includes                                                         |
+//+------------------------------------------------------------------+
+#include <Base/CBase.mqh>
+#include <Base/SBase.mqh>
+//+------------------------------------------------------------------+
 //| Class CFolder                                                    |
 //| Usage: Control working with folders and files                    |
 //+------------------------------------------------------------------+
-class CFolder
+class CFolder : public CBase
    {
 private:
     string           m_path;                // path
