@@ -310,8 +310,8 @@ uint CFileBIN::WriteObject(T &value)
         uint ret = 0;
         //--- get types and values from object
         string types[],values[];
-        int size = value.Variables(GET_TYPES,types,true);
-        value.Variables(GET_VALUES,values,true);
+        int size = value.Variables(GET_TYPES,types,false);
+        value.Variables(GET_VALUES,values,false);
         //--- write values with types
         for(int i = 0; i < size; i++)
            {
@@ -1114,7 +1114,7 @@ bool CFileBIN::ReadObject(T &value)
        {
         //--- get types from object
         string types[],values[];
-        int size = value.Variables(GET_TYPES,types,true);
+        int size = value.Variables(GET_TYPES,types,false);
         //--- resize values array
         ArrayResize(values,size);
         //--- read values with types
@@ -1477,7 +1477,8 @@ bool CFileBIN::ReadObject(T &value)
                 continue;
                }
            }
-        value.Variables(SET_VALUES,values,true);
+        //--- set values array to object
+        value.Variables(SET_VALUES,values,false);
         return(true);
        }
 //--- failure
