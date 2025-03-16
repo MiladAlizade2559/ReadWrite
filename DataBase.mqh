@@ -22,6 +22,9 @@ public:
                      CDataBase(void);
                      CDataBase(const string path,const bool is_common_folder);
                     ~CDataBase(void);
+    //--- General functions for controlling work with database
+    virtual int      Open(const string file_name,const uint flags);
+    virtual void     Close(void);
    };
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
@@ -40,5 +43,27 @@ CDataBase::CDataBase(const string path,const bool is_common_folder) : CFolder(pa
 //+------------------------------------------------------------------+
 CDataBase::~CDataBase(void)
    {
+   }
+//+------------------------------------------------------------------+
+//| Opening the database                                             |
+//+------------------------------------------------------------------+
+int CDataBase::Open(const string file_name,const uint flags)
+   {
+    uint open_flags = IsCommonFolder() ? flags | DATABASE_OPEN_COMMON : flags;
+    m_handle = ::DatabaseOpen(file_name,open_flags);
+    return(m_handle);
+   }
+//+------------------------------------------------------------------+
+//| Close the database                                               |
+//+------------------------------------------------------------------+
+void CDataBase::Close(void)
+   {
+//--- check handle
+    if(m_handle != INVALID_HANDLE)
+       {
+        //--- closing the database and resetting handle
+        ::DatabaseClose(m_handle);
+        m_handle = INVALID_HANDLE;
+       }
    }
 //+------------------------------------------------------------------+
