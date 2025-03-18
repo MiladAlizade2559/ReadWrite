@@ -32,7 +32,7 @@ public:
     //--- Functions for controlling work with database tables
     int              Tables(string &array[]);
     bool             TableExists(const string table_name);
-    bool             TableCreate(const string table_name,const ENUM_DATABASE_FIELD_TYPE type_key = DATABASE_FIELD_TYPE_INTEGER,const string primary_key = "Id");
+    bool             TableCreate(const string table_name,const string primary_key = "Id");
     bool             TableOpen(const string table_name);
     void             TableClose(void);
     bool             TableRename(const string table_name, const string new_table_name);
@@ -50,6 +50,15 @@ public:
     bool             ColumnClear(const string column_name);
     bool             ColumnDelete(const string column_name);
     ENUM_DATABASE_FIELD_TYPE ColumnType(const string column_name);
+    //--- Functions for controlling work with database table rows
+    int              Rows(void);
+    int              Rows(int &array[]);
+    bool             RowExists(const int id);
+    bool             RowCreate(const int id);
+    bool             RowRechange(const int id, const int new_id);
+    bool             RowClear(const int id);
+    bool             RowDelete(const int id);
+    int              MaxId(void);
    };
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
@@ -123,6 +132,7 @@ int CDataBase::Tables(string &array[])
     ::ArrayResize(array, size);
 //--- send a query for get the tables
     int request = ::DatabasePrepare(m_handle, "SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';");
+//--- check request
     if(request == INVALID_HANDLE)
         return(-1);
 //--- read row and set row values to value
@@ -152,10 +162,10 @@ bool CDataBase::TableExists(const string table_name)
 //+------------------------------------------------------------------+
 //| Creating a table empty                                           |
 //+------------------------------------------------------------------+
-bool CDataBase::TableCreate(const string table_name,const ENUM_DATABASE_FIELD_TYPE type_key = DATABASE_FIELD_TYPE_INTEGER,const string primary_key = "Id")
+bool CDataBase::TableCreate(const string table_name,const string primary_key = "Id")
    {
 //--- send a query to create an empty tabel
-    if(::DatabaseExecute(m_handle, StringFormat("CREATE TABLE IF NOT EXISTS '%s'('%s' %s PRIMARY KEY NOT NULL);", table_name,primary_key,TypeToString(type_key))))
+    if(::DatabaseExecute(m_handle, StringFormat("CREATE TABLE IF NOT EXISTS '%s'('%s' INTEGER PRIMARY KEY NOT NULL);", table_name,primary_key)))
        {
         return(true);
        }
@@ -284,6 +294,9 @@ string CDataBase::PrimaryKey(const string table_name)
     string value = "";
 //--- send a query to get the columns from the table
     int request = ::DatabasePrepare(m_handle, StringFormat("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '%s';", table_name));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(value);
 //--- read a query
     if(::DatabaseRead(request))
        {
@@ -306,6 +319,9 @@ int CDataBase::Columns(string &array[])
     int count = 0;
 //--- send a query to get the columns from the table
     int request = ::DatabasePrepare(m_handle, StringFormat("SELECT * FROM '%s' WHERE '%s' == 0", m_table_name,m_primary_key));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(count);
 //--- read a query
     if(::DatabaseRead(request))
        {
@@ -397,6 +413,9 @@ ENUM_DATABASE_FIELD_TYPE CDataBase::ColumnType(const string column_name)
     ENUM_DATABASE_FIELD_TYPE type = 0;
 //--- send a query to get the column value
     int request = ::DatabasePrepare(m_handle, StringFormat("SELECT '%s' FROM '%s';", column_name, m_table_name));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(type);
 //--- read a query
     if(::DatabaseRead(request))
        {
@@ -406,5 +425,157 @@ ENUM_DATABASE_FIELD_TYPE CDataBase::ColumnType(const string column_name)
 //--- end query
     ::DatabaseFinalize(request);
     return(type);
+   }
+//+------------------------------------------------------------------+
+//| Get count rows in table                                          |
+//+------------------------------------------------------------------+
+int CDataBase::Rows(void)
+   {
+    int count = -1;
+//--- send a query to get rows total id
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT COUNT(*) FROM %s;", m_table_name));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(count);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value to zero(0) column and set to count
+        ::DatabaseColumnInteger(request, 0, count);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(count);
+   }
+//+------------------------------------------------------------------+
+//| Get rows in table                                                |
+//+------------------------------------------------------------------+
+int CDataBase::Rows(int &array[])
+   {
+//--- create struct table for get ids
+    struct table
+       {
+        int          id;
+       };
+    table value;
+    int size = 0;
+//--- resize array to 0
+    ArrayResize(array, size);
+//--- send a query to get the values
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT '%s' FROM '%s';", m_primary_key,m_table_name));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(size);
+//--- read row and set row values to value
+    while(::DatabaseReadBind(request, value))
+       {
+        //--- set value to array
+        ArrayResize(array, size + 1);
+        array[size] = value.id;
+        size++;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(size);
+   }
+//+------------------------------------------------------------------+
+//| Exists id row in primary key table                               |
+//+------------------------------------------------------------------+
+bool CDataBase::RowExists(const int id)
+   {
+//--- send a query to get the row
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT '%s' FROM '%s' WHERE '%s' == %d;", m_primary_key,m_table_name,m_primary_key, id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- end query
+        ::DatabaseFinalize(request);
+        return(true);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Create id row in primary key table                               |
+//+------------------------------------------------------------------+
+bool CDataBase::RowCreate(const int id)
+   {
+//--- send a query to create row
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT INTO '%s'('%s') VALUES(%d);", m_table_name,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Change id row in primary key table                               |
+//+------------------------------------------------------------------+
+bool CDataBase::RowRechange(const int id, const int new_id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("UPDATE '%s' SET '%s' = %d WHERE '%s' == %d;", m_table_name,m_primary_key,new_id,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Clear id row in primary key table                                |
+//+------------------------------------------------------------------+
+bool CDataBase::RowClear(const int id)
+   {
+    string columns[];
+    int size = Columns(columns);
+    if(size <= 0)
+        return(false);
+    string query = StringFormat("UPDATE '%s' SET",m_table_name);
+    for(int i = 0; i < size - 1; i++)
+       {
+        query += StringFormat(" '%s' = NULL,",columns[i]);
+       }
+    query += StringFormat(" '%s' = NULL WHERE '%s' = %d",columns[size - 1],m_primary_key,id);
+//--- send a query to clear row
+    if(::DatabaseExecute(m_handle, query))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Delete id row in primary key table                               |
+//+------------------------------------------------------------------+
+bool CDataBase::RowDelete(const int id)
+   {
+//--- send a query to delete row
+    if(::DatabaseExecute(m_handle, StringFormat("DELETE FROM '%s' WHERE '%s' == %d;", m_table_name,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Get max id row in primary key table                              |
+//+------------------------------------------------------------------+
+int CDataBase::MaxId(void)
+   {
+    int row = -1;
+//--- send a query to get maximum id
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT MAX('%d') FROM '%s';", m_primary_key,m_table_name));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(row);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value to zero(0) column and set to row
+        ::DatabaseColumnInteger(request, 0, row);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(row);
    }
 //+------------------------------------------------------------------+
