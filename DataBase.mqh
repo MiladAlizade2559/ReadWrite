@@ -59,6 +59,40 @@ public:
     bool             RowClear(const int id);
     bool             RowDelete(const int id);
     int              MaxId(void);
+    //--- Functions to control data writing variables
+    bool             WriteUChar(const uchar value,const string column_name,const int id);
+    bool             WriteChar(const char value,const string column_name,const int id);
+    bool             WriteUShort(const ushort value,const string column_name,const int id);
+    bool             WriteShort(const short value,const string column_name,const int id);
+    bool             WriteUInt(const uint value,const string column_name,const int id);
+    bool             WriteInt(const int value,const string column_name,const int id);
+    bool             WriteULong(const ulong value,const string column_name,const int id);
+    bool             WriteLong(const long value,const string column_name,const int id);
+    bool             WriteFloat(const float value,const string column_name,const int id);
+    bool             WriteDouble(const double value,const string column_name,const int id);
+    bool             WriteBool(const bool value,const string column_name,const int id);
+    bool             WriteColor(const color value,const string column_name,const int id);
+    bool             WriteDateTime(const datetime value,const string column_name,const int id);
+    bool             WriteString(const string value,const string column_name,const int id);
+    template<typename T>
+    bool             WriteEnum(const T value,const string column_name,const int id);
+    //--- Functions to control data reading variables
+    bool             ReadUChar(uchar &value,const string column_name,const int id);
+    bool             ReadChar(char &value,const string column_name,const int id);
+    bool             ReadUShort(ushort &value,const string column_name,const int id);
+    bool             ReadShort(short &value,const string column_name,const int id);
+    bool             ReadUInt(uint &value,const string column_name,const int id);
+    bool             ReadInt(int &value,const string column_name,const int id);
+    bool             ReadULong(ulong &value,const string column_name,const int id);
+    bool             ReadLong(long &value,const string column_name,const int id);
+    bool             ReadFloat(float &value,const string column_name,const int id);
+    bool             ReadDouble(double &value,const string column_name,const int id);
+    bool             ReadBool(bool &value,const string column_name,const int id);
+    bool             ReadColor(color &value,const string column_name,const int id);
+    bool             ReadDateTime(datetime &value,const string column_name,const int id);
+    bool             ReadString(string &value,const string column_name,const int id);
+    template<typename T>
+    bool             ReadEnum(T &value,const string column_name,const int id);
    };
 //+------------------------------------------------------------------+
 //| Constructor                                                      |
@@ -165,7 +199,7 @@ bool CDataBase::TableExists(const string table_name)
 bool CDataBase::TableCreate(const string table_name,const string primary_key = "Id")
    {
 //--- send a query to create an empty tabel
-    if(::DatabaseExecute(m_handle, StringFormat("CREATE TABLE IF NOT EXISTS '%s'('%s' INTEGER PRIMARY KEY NOT NULL);", table_name,primary_key)))
+    if(::DatabaseExecute(m_handle, StringFormat("CREATE TABLE IF NOT EXISTS '%s'(%s INTEGER PRIMARY KEY NOT NULL);", table_name,primary_key)))
        {
         return(true);
        }
@@ -318,7 +352,7 @@ int CDataBase::Columns(string &array[])
    {
     int count = 0;
 //--- send a query to get the columns from the table
-    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT * FROM '%s' WHERE '%s' == 0", m_table_name,m_primary_key));
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT * FROM '%s' WHERE %s == 0", m_table_name,m_primary_key));
 //--- check request
     if(request == INVALID_HANDLE)
         return(count);
@@ -363,7 +397,7 @@ bool CDataBase::ColumnExists(const string column_name)
 bool CDataBase::ColumnCreate(const ENUM_DATABASE_FIELD_TYPE column_type,const string column_name)
    {
 //--- send a query to create column and set column type
-    if(::DatabaseExecute(m_handle, StringFormat("ALTER TABLE '%s' ADD COLUMN '%s' %s;", m_table_name, column_name, TypeToString(column_type))))
+    if(::DatabaseExecute(m_handle, StringFormat("ALTER TABLE '%s' ADD COLUMN %s %s;", m_table_name, column_name, TypeToString(column_type))))
        {
         return(true);
        }
@@ -375,7 +409,7 @@ bool CDataBase::ColumnCreate(const ENUM_DATABASE_FIELD_TYPE column_type,const st
 bool CDataBase::ColumnRename(const string column_name, const string new_column_name)
    {
 //--- send a query to rename column
-    if(::DatabaseExecute(m_handle, StringFormat("ALTER TABLE '%s' RENAME '%s' TO '%s';", m_table_name, column_name, new_column_name)))
+    if(::DatabaseExecute(m_handle, StringFormat("ALTER TABLE '%s' RENAME %s TO %s;", m_table_name, column_name, new_column_name)))
        {
         return(true);
        }
@@ -387,7 +421,7 @@ bool CDataBase::ColumnRename(const string column_name, const string new_column_n
 bool CDataBase::ColumnClear(const string column_name)
    {
 //--- send a query to clear column
-    if(::DatabaseExecute(m_handle, StringFormat("UPDATE '%s' SET '%s' = NULL;", m_table_name, column_name)))
+    if(::DatabaseExecute(m_handle, StringFormat("UPDATE '%s' SET %s = NULL;", m_table_name, column_name)))
        {
         return(true);
        }
@@ -399,7 +433,7 @@ bool CDataBase::ColumnClear(const string column_name)
 bool CDataBase::ColumnDelete(const string column_name)
    {
 //--- send a query to delete column
-    if(::DatabaseExecute(m_handle, StringFormat("ALTER TABLE '%s' DROP '%s';", m_table_name, column_name)))
+    if(::DatabaseExecute(m_handle, StringFormat("ALTER TABLE '%s' DROP %s;", m_table_name, column_name)))
        {
         return(true);
        }
@@ -412,7 +446,7 @@ ENUM_DATABASE_FIELD_TYPE CDataBase::ColumnType(const string column_name)
    {
     ENUM_DATABASE_FIELD_TYPE type = 0;
 //--- send a query to get the column value
-    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT '%s' FROM '%s';", column_name, m_table_name));
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s';", column_name, m_table_name));
 //--- check request
     if(request == INVALID_HANDLE)
         return(type);
@@ -433,7 +467,7 @@ int CDataBase::Rows(void)
    {
     int count = -1;
 //--- send a query to get rows total id
-    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT COUNT(*) FROM %s;", m_table_name));
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT COUNT(*) FROM '%s';", m_table_name));
 //--- check request
     if(request == INVALID_HANDLE)
         return(count);
@@ -462,7 +496,7 @@ int CDataBase::Rows(int &array[])
 //--- resize array to 0
     ArrayResize(array, size);
 //--- send a query to get the values
-    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT '%s' FROM '%s';", m_primary_key,m_table_name));
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s';", m_primary_key,m_table_name));
 //--- check request
     if(request == INVALID_HANDLE)
         return(size);
@@ -484,7 +518,7 @@ int CDataBase::Rows(int &array[])
 bool CDataBase::RowExists(const int id)
    {
 //--- send a query to get the row
-    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT '%s' FROM '%s' WHERE '%s' == %d;", m_primary_key,m_table_name,m_primary_key, id));
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", m_primary_key,m_table_name,m_primary_key, id));
 //--- check request
     if(request == INVALID_HANDLE)
         return(false);
@@ -505,7 +539,7 @@ bool CDataBase::RowExists(const int id)
 bool CDataBase::RowCreate(const int id)
    {
 //--- send a query to create row
-    if(::DatabaseExecute(m_handle, StringFormat("INSERT INTO '%s'('%s') VALUES(%d);", m_table_name,m_primary_key,id)))
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT INTO '%s'(%s) VALUES(%d);", m_table_name,m_primary_key,id)))
        {
         return(true);
        }
@@ -517,7 +551,7 @@ bool CDataBase::RowCreate(const int id)
 bool CDataBase::RowRechange(const int id, const int new_id)
    {
 //--- send a query to updata row value
-    if(::DatabaseExecute(m_handle, StringFormat("UPDATE '%s' SET '%s' = %d WHERE '%s' == %d;", m_table_name,m_primary_key,new_id,m_primary_key,id)))
+    if(::DatabaseExecute(m_handle, StringFormat("UPDATE '%s' SET %s = %d WHERE %s == %d;", m_table_name,m_primary_key,new_id,m_primary_key,id)))
        {
         return(true);
        }
@@ -535,9 +569,9 @@ bool CDataBase::RowClear(const int id)
     string query = StringFormat("UPDATE '%s' SET",m_table_name);
     for(int i = 0; i < size - 1; i++)
        {
-        query += StringFormat(" '%s' = NULL,",columns[i]);
+        query += StringFormat(" %s = NULL,",columns[i]);
        }
-    query += StringFormat(" '%s' = NULL WHERE '%s' = %d",columns[size - 1],m_primary_key,id);
+    query += StringFormat(" %s = NULL WHERE %s = %d",columns[size - 1],m_primary_key,id);
 //--- send a query to clear row
     if(::DatabaseExecute(m_handle, query))
        {
@@ -551,7 +585,7 @@ bool CDataBase::RowClear(const int id)
 bool CDataBase::RowDelete(const int id)
    {
 //--- send a query to delete row
-    if(::DatabaseExecute(m_handle, StringFormat("DELETE FROM '%s' WHERE '%s' == %d;", m_table_name,m_primary_key,id)))
+    if(::DatabaseExecute(m_handle, StringFormat("DELETE FROM '%s' WHERE %s == %d;", m_table_name,m_primary_key,id)))
        {
         return(true);
        }
@@ -564,7 +598,7 @@ int CDataBase::MaxId(void)
    {
     int row = -1;
 //--- send a query to get maximum id
-    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT MAX('%d') FROM '%s';", m_primary_key,m_table_name));
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT MAX(%s) FROM '%s';", m_primary_key,m_table_name));
 //--- check request
     if(request == INVALID_HANDLE)
         return(row);
@@ -577,5 +611,540 @@ int CDataBase::MaxId(void)
 //--- end query
     ::DatabaseFinalize(request);
     return(row);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of uchar type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteUChar(const uchar value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of char type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteChar(const char value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of ushort type                                  |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteUShort(const ushort value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of short type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteShort(const short value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of uint type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteUInt(const uint value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of int type                                     |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteInt(const int value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of ulong type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteULong(const ulong value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of long type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteLong(const long value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of float type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteFloat(const float value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of double type                                  |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteDouble(const double value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of bool type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteBool(const bool value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of color type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteColor(const color value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of datetime type                                |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteDateTime(const datetime value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,(string)value,
+                         m_table_name,column_name,(string)value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of string type                                  |
+//+------------------------------------------------------------------+
+bool CDataBase::WriteString(const string value,const string column_name,const int id)
+   {
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,value,
+                         m_table_name,column_name,value,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Write a variable of an enumeration type                          |
+//+------------------------------------------------------------------+
+template<typename T>
+bool CDataBase::WriteEnum(const T value,const string column_name,const int id)
+   {
+    string value_string = StringFormat("%s(%d)",EnumToString(value),value);
+//--- send a query to updata row value
+    if(::DatabaseExecute(m_handle, StringFormat("INSERT OR IGNORE INTO '%s' (%s,%s) VALUES (%d,%s);UPDATE '%s' SET %s = %s WHERE %s = %d;",
+                         m_table_name,m_primary_key,column_name,id,value_string,
+                         m_table_name,column_name,value_string,m_primary_key,id)))
+       {
+        return(true);
+       }
+    return(false);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of uchar type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadUChar(uchar &value,const string column_name,const int id)
+   {
+    int value_int = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnInteger(request, 0, value_int);
+        value = (uchar)value_int;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of char type                                     |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadChar(char &value,const string column_name,const int id)
+   {
+    int value_int = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnInteger(request, 0, value_int);
+        value = (char)value_int;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of ushort type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadUShort(ushort &value,const string column_name,const int id)
+   {
+    int value_int = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnInteger(request, 0, value_int);
+        value = (ushort)value_int;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of short type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadShort(short &value,const string column_name,const int id)
+   {
+    int value_int = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnInteger(request, 0, value_int);
+        value = (short)value_int;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of uint type                                     |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadUInt(uint &value,const string column_name,const int id)
+   {
+    int value_int = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnInteger(request, 0, value_int);
+        value = (uint)value_int;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of int type                                      |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadInt(int &value,const string column_name,const int id)
+   {
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnInteger(request, 0, value);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of ulong type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadULong(ulong &value,const string column_name,const int id)
+   {
+    long value_long = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnLong(request, 0, value_long);
+        value = (ulong)value_long;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of long type                                     |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadLong(long &value,const string column_name,const int id)
+   {
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnLong(request, 0, value);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of float type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadFloat(float &value,const string column_name,const int id)
+   {
+    double value_double = 0;
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnDouble(request, 0, value_double);
+        value = (float)value_double;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of double type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadDouble(double &value,const string column_name,const int id)
+   {
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnDouble(request, 0, value);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of bool type                                     |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadBool(bool &value,const string column_name,const int id)
+   {
+    string value_string = "";
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnText(request, 0, value_string);
+        value = StringCompare(value_string,"true",false) == 0 ? true : false;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of color type                                    |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadColor(color &value,const string column_name,const int id)
+   {
+    string value_string = "";
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnText(request, 0, value_string);
+        value = (color)value_string;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of datetime type                                 |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadDateTime(datetime &value,const string column_name,const int id)
+   {
+    string value_string = "";
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnText(request, 0, value_string);
+        value = (datetime)value_string;
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of string type                                   |
+//+------------------------------------------------------------------+
+bool CDataBase::ReadString(string &value,const string column_name,const int id)
+   {
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnText(request, 0, value);
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
+   }
+//+------------------------------------------------------------------+
+//| Read a variable of an enumeration type                           |
+//+------------------------------------------------------------------+
+template<typename T>
+bool CDataBase::ReadEnum(T &value,const string column_name,const int id)
+   {
+    string value_string = "";
+//--- send a query to get value
+    int request = ::DatabasePrepare(m_handle, StringFormat("SELECT %s FROM '%s' WHERE %s == %d;", column_name,m_table_name,m_primary_key,id));
+//--- check request
+    if(request == INVALID_HANDLE)
+        return(false);
+//--- read a query
+    if(::DatabaseRead(request))
+       {
+        //--- get value
+        ::DatabaseColumnText(request, 0, value_string);
+        value = (T)StringSubstr(value_string,find + 1,StringLen(value_string));
+       }
+//--- end query
+    ::DatabaseFinalize(request);
+    return(true);
    }
 //+------------------------------------------------------------------+
